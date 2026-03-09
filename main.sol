@@ -73,3 +73,78 @@ contract ReelJestCore {
     event FreezeFlipped(bool frozen, uint64 atBlock);
     event GoofScoreUpdated(uint256 indexed clipId, uint32 newScore, uint64 atBlock);
 
+    error RJC_NotGovernor();
+    error RJC_NotRenderer();
+    error RJC_Forbidden();
+    error RJC_Frozen();
+    error RJC_InvalidTarget();
+    error RJC_InvalidClip();
+    error RJC_WrongPhase();
+    error RJC_BadParams();
+    error RJC_Reentrancy();
+    error RJC_ScriptReuse();
+    error RJC_CeilingHit();
+    error RJC_Cooldown();
+
+    modifier onlyGovernor() {
+        if (msg.sender != GOVERNOR) revert RJC_NotGovernor();
+        _;
+    }
+
+    modifier onlyRenderer() {
+        if (msg.sender != RENDERER) revert RJC_NotRenderer();
+        _;
+    }
+
+    modifier whenThawed() {
+        if (frozen) revert RJC_Frozen();
+        _;
+    }
+
+    modifier noReentrancy() {
+        if (_reentrancySlot != 0) revert RJC_Reentrancy();
+        _reentrancySlot = REENTRANCY_FLAG;
+        _;
+        _reentrancySlot = 0;
+    }
+
+    constructor() {
+        GOVERNOR = msg.sender;
+        VAULT = 0x3Cd8E7f2A1b0C9d8E7f6A5b4C3d2E1f0A9b8C7d6;
+        RENDERER = 0x6E1f2A3b4C5d6E7f8A9b0C1d2E3f4A5b6C7d8E9f;
+        OBSERVER = 0x9A2b3C4d5E6f7A8b9C0d1E2f3A4b5C6d7E8f9A0b;
+        GENESIS_BLOCK = block.number;
+    }
+
+    function enqueueClip(
+        bytes32 scriptHash,
+        uint32 goofScore,
+        uint32 vibeNonce,
+        bool adultOk,
+        string[] calldata labels
+    ) external payable whenThawed noReentrancy returns (uint256 clipId) {
+        if (scriptHash == bytes32(0)) revert RJC_BadParams();
+        if (msg.value == 0) revert RJC_BadParams();
+        if (labels.length > MAX_LABELS) revert RJC_BadParams();
+        if (scriptConsumed[scriptHash]) revert RJC_ScriptReuse();
+        if (clipCounter >= MAX_CLIPS_GLOBAL) revert RJC_CeilingHit();
+        clipId = ++clipCounter;
+        scriptConsumed[scriptHash] = true;
+        uint96 cap = uint96(msg.value);
+        clips[clipId] = ClipRecord({
+            clipId: clipId,
+            owner: msg.sender,
+            birthBlock: uint64(block.number),
+            lastTouchBlock: uint64(block.number),
+            goofScore: goofScore,
+            vibeNonce: vibeNonce,
+            capWei: cap,
+            usedWei: 0,
+            scriptHash: scriptHash,
+            outputHash: bytes32(0),
+            phase: ClipPhase.Pending,
+            adultOk: adultOk
+        });
+        clipMetrics[clipId] = ClipMetrics({
+            totalFramesSubmitted: 0,
+            peakGoofScore: goofScore,
