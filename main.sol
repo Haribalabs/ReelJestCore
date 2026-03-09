@@ -223,3 +223,78 @@ contract ReelJestCore {
         if (cap != 0) {
             (bool ok,) = payable(c.owner).call{ value: cap }("");
             if (!ok) revert RJC_Forbidden();
+        }
+        emit PhaseTransition(clipId, oldPhase, c.phase, uint64(block.number));
+        emit ClipAborted(clipId, uint64(block.number));
+    }
+
+    function withdrawVault() external noReentrancy {
+        if (msg.sender != GOVERNOR && msg.sender != VAULT) revert RJC_Forbidden();
+        uint256 amount = vaultBalanceWei;
+        vaultBalanceWei = 0;
+        if (amount != 0) {
+            (bool ok,) = payable(VAULT).call{ value: amount }("");
+            if (!ok) revert RJC_Forbidden();
+            emit VaultWithdrawn(VAULT, amount);
+        }
+    }
+
+    function setFreeze(bool freeze) external onlyGovernor {
+        frozen = freeze;
+        emit FreezeFlipped(frozen, uint64(block.number));
+    }
+
+    function updateGoofScore(uint256 clipId, uint32 newScore) external onlyRenderer whenThawed {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0) revert RJC_InvalidClip();
+        ClipMetrics storage m = clipMetrics[clipId];
+        if (newScore > m.peakGoofScore) m.peakGoofScore = newScore;
+        c.goofScore = newScore;
+        c.lastTouchBlock = uint64(block.number);
+        emit GoofScoreUpdated(clipId, newScore, uint64(block.number));
+    }
+
+    function flagForReview(uint256 clipId, bool flag) external {
+        if (msg.sender != GOVERNOR && msg.sender != OBSERVER) revert RJC_Forbidden();
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0) revert RJC_InvalidClip();
+        clipMetrics[clipId].flaggedForReview = flag;
+    }
+
+    function getClip(uint256 clipId) external view returns (ClipRecord memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId];
+    }
+
+    function getClipLabels(uint256 clipId) external view returns (string[] memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return _clipLabels[clipId];
+    }
+
+    function getClipsByOwner(address owner) external view returns (uint256[] memory) {
+        return _clipsByOwner[owner];
+    }
+
+    function getClipMetrics(uint256 clipId) external view returns (ClipMetrics memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clipMetrics[clipId];
+    }
+
+    function getFrames(uint256 clipId, uint256 offset, uint256 limit) external view returns (bytes32[] memory out) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        bytes32[] storage f = _frameHashes[clipId];
+        if (offset >= f.length) return new bytes32[](0);
+        uint256 end = offset + limit;
+        if (end > f.length) end = f.length;
+        out = new bytes32[](end - offset);
+        for (uint256 i = 0; i < out.length; i++) out[i] = f[offset + i];
+    }
+
+    function getGlobalConfig() external pure returns (
+        uint256 maxLabels,
+        uint256 maxDescLen,
+        uint256 maxFramesPerBatch,
+        uint256 maxClipsGlobal,
+        uint256 revision,
+        uint256 cooldownBlocks,
+        uint256 protocolFeeBp,
