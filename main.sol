@@ -148,3 +148,78 @@ contract ReelJestCore {
         clipMetrics[clipId] = ClipMetrics({
             totalFramesSubmitted: 0,
             peakGoofScore: goofScore,
+            lastActivityBlock: uint64(block.number),
+            flaggedForReview: false
+        });
+        for (uint256 i = 0; i < labels.length; i++) {
+            if (bytes(labels[i]).length == 0 || bytes(labels[i]).length > MAX_DESC_LEN) revert RJC_BadParams();
+            _clipLabels[clipId].push(labels[i]);
+        }
+        _clipsByOwner[msg.sender].push(clipId);
+        globalCapWei += msg.value;
+        emit ClipEnqueued(clipId, msg.sender, scriptHash, cap);
+    }
+
+    function startRendering(uint256 clipId) external onlyRenderer whenThawed {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0) revert RJC_InvalidClip();
+        if (c.phase != ClipPhase.Pending) revert RJC_WrongPhase();
+        if (block.number < uint256(c.lastTouchBlock) + COOLDOWN_BLOCKS) revert RJC_Cooldown();
+        ClipPhase oldPhase = c.phase;
+        c.phase = ClipPhase.InProgress;
+        c.lastTouchBlock = uint64(block.number);
+        emit PhaseTransition(clipId, oldPhase, c.phase, uint64(block.number));
+    }
+
+    function pushFrames(uint256 clipId, bytes32[] calldata frameHashes) external onlyRenderer whenThawed {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0) revert RJC_InvalidClip();
+        if (c.phase != ClipPhase.InProgress) revert RJC_WrongPhase();
+        if (frameHashes.length == 0 || frameHashes.length > MAX_FRAMES_PER_BATCH) revert RJC_BadParams();
+        ClipMetrics storage m = clipMetrics[clipId];
+        for (uint256 i = 0; i < frameHashes.length; i++) {
+            if (frameHashes[i] == bytes32(0)) revert RJC_BadParams();
+            _frameHashes[clipId].push(frameHashes[i]);
+            m.totalFramesSubmitted += 1;
+            emit FrameAppended(clipId, frameHashes[i], uint32(_frameHashes[clipId].length - 1), uint64(block.number));
+        }
+        c.lastTouchBlock = uint64(block.number);
+        m.lastActivityBlock = uint64(block.number);
+    }
+
+    function completeClip(uint256 clipId, bytes32 outputHash, uint96 usedWei) external onlyRenderer whenThawed noReentrancy {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0) revert RJC_InvalidClip();
+        if (c.phase != ClipPhase.InProgress) revert RJC_WrongPhase();
+        if (outputHash == bytes32(0)) revert RJC_BadParams();
+        if (usedWei > c.capWei) revert RJC_BadParams();
+        uint256 fee = (uint256(usedWei) * PROTOCOL_FEE_BP) / BASIS_POINTS;
+        vaultBalanceWei += fee;
+        globalUsedWei += usedWei;
+        c.outputHash = outputHash;
+        c.usedWei = usedWei;
+        ClipPhase oldPhase = c.phase;
+        c.phase = ClipPhase.Done;
+        c.lastTouchBlock = uint64(block.number);
+        uint256 refund = uint256(c.capWei) - uint256(usedWei);
+        if (refund != 0) {
+            (bool ok,) = payable(c.owner).call{ value: refund }("");
+            if (!ok) revert RJC_Forbidden();
+        }
+        emit PhaseTransition(clipId, oldPhase, c.phase, uint64(block.number));
+        emit ClipCompleted(clipId, outputHash, usedWei, uint64(block.number));
+    }
+
+    function abortClip(uint256 clipId) external noReentrancy {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0) revert RJC_InvalidClip();
+        if (msg.sender != c.owner && msg.sender != GOVERNOR) revert RJC_Forbidden();
+        if (c.phase == ClipPhase.Done || c.phase == ClipPhase.Absent || c.phase == ClipPhase.Aborted) revert RJC_WrongPhase();
+        ClipPhase oldPhase = c.phase;
+        c.phase = ClipPhase.Aborted;
+        c.lastTouchBlock = uint64(block.number);
+        uint256 cap = uint256(c.capWei);
+        c.capWei = 0;
+        if (cap != 0) {
+            (bool ok,) = payable(c.owner).call{ value: cap }("");
+            if (!ok) revert RJC_Forbidden();
