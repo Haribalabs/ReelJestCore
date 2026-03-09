@@ -298,3 +298,78 @@ contract ReelJestCore {
         uint256 revision,
         uint256 cooldownBlocks,
         uint256 protocolFeeBp,
+        bytes32 domain
+    ) {
+        return (MAX_LABELS, MAX_DESC_LEN, MAX_FRAMES_PER_BATCH, MAX_CLIPS_GLOBAL, REVISION, COOLDOWN_BLOCKS, PROTOCOL_FEE_BP, EIP_DOMAIN);
+    }
+
+    function getRoleAddresses() external view returns (address governor, address vault, address renderer, address observer) {
+        return (GOVERNOR, VAULT, RENDERER, OBSERVER);
+    }
+
+    function globalStats() external view returns (
+        uint256 totalClips,
+        uint256 totalCapWei,
+        uint256 totalUsedWei,
+        uint256 vaultAccruedWei,
+        bool isFrozen
+    ) {
+        return (clipCounter, globalCapWei, globalUsedWei, vaultBalanceWei, frozen);
+    }
+
+    function isClipDone(uint256 clipId) external view returns (bool) {
+        return clips[clipId].phase == ClipPhase.Done;
+    }
+
+    function computeFee(uint256 usedWei) external pure returns (uint256) {
+        return (usedWei * PROTOCOL_FEE_BP) / BASIS_POINTS;
+    }
+
+    function clipPhaseName(uint256 clipId) external view returns (uint8) {
+        return uint8(clips[clipId].phase);
+    }
+
+    function totalFramesForClip(uint256 clipId) external view returns (uint256) {
+        return _frameHashes[clipId].length;
+    }
+
+    function hasScriptBeenUsed(bytes32 scriptHash) external view returns (bool) {
+        return scriptConsumed[scriptHash];
+    }
+
+    uint256 public constant MAX_BULK_QUERY = 88;
+    uint256 public constant MIN_GOOF_SCORE = 0;
+    uint256 public constant MAX_GOOF_SCORE = 99999;
+    uint256 public constant BLOCKS_PER_EPOCH = 64;
+    uint256 public constant EPOCH_REWARD_SCALE_BP = 50;
+    bytes32 public constant VERSION_TAG = keccak256("ReelJestCore.0x_vidgen_sup.7");
+
+    struct ClipSummary {
+        uint256 clipId;
+        address owner;
+        uint32 goofScore;
+        uint96 capWei;
+        uint96 usedWei;
+        ClipPhase phase;
+        uint64 birthBlock;
+    }
+
+    struct BulkClipResult {
+        ClipSummary[] summaries;
+        uint256 nextOffset;
+        bool hasMore;
+    }
+
+    function getClipSummaries(uint256 fromId, uint256 count) external view returns (ClipSummary[] memory result) {
+        if (count == 0 || count > MAX_BULK_QUERY) revert RJC_BadParams();
+        uint256 end = fromId + count;
+        if (end > clipCounter + 1) end = clipCounter + 1;
+        uint256 len = end > fromId ? end - fromId : 0;
+        result = new ClipSummary[](len);
+        for (uint256 i = 0; i < len; i++) {
+            uint256 id = fromId + i;
+            ClipRecord storage c = clips[id];
+            if (c.clipId == 0) continue;
+            result[i] = ClipSummary({
+                clipId: c.clipId,
+                owner: c.owner,
