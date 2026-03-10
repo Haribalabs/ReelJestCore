@@ -973,3 +973,78 @@ contract ReelJestCore {
     function totalFrameCountGlobal() external view returns (uint256 total) {
         for (uint256 id = 1; id <= clipCounter; id++) {
             total += _frameHashes[id].length;
+        }
+    }
+
+    function totalLabelCountGlobal() external view returns (uint256 total) {
+        for (uint256 id = 1; id <= clipCounter; id++) {
+            total += _clipLabels[id].length;
+        }
+    }
+
+    function clipWithMostFrames() external view returns (uint256 clipId, uint256 frameCount) {
+        for (uint256 id = 1; id <= clipCounter; id++) {
+            uint256 len = _frameHashes[id].length;
+            if (len > frameCount) {
+                frameCount = len;
+                clipId = id;
+            }
+        }
+    }
+
+    function clipWithHighestGoof(uint256 fromId, uint256 limit) external view returns (uint256 clipId, uint32 score) {
+        uint256 end = fromId + limit;
+        if (end > clipCounter) end = clipCounter + 1;
+        for (uint256 id = fromId == 0 ? 1 : fromId; id < end; id++) {
+            uint32 s = clipMetrics[id].peakGoofScore;
+            if (s > score) {
+                score = s;
+                clipId = id;
+            }
+        }
+    }
+
+    function computeEpochFromBlock(uint256 blockNum) internal pure returns (uint256) {
+        return blockNum / BLOCKS_PER_EPOCH;
+    }
+
+    function getEpochForClip(uint256 clipId) external view returns (uint256) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return computeEpochFromBlock(clips[clipId].birthBlock);
+    }
+
+    function getEpochForClipLastTouch(uint256 clipId) external view returns (uint256) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return computeEpochFromBlock(clips[clipId].lastTouchBlock);
+    }
+
+    function feeForAmount(uint256 amountWei) external pure returns (uint256) {
+        return (amountWei * PROTOCOL_FEE_BP) / BASIS_POINTS;
+    }
+
+    function netAfterFee(uint256 amountWei) external pure returns (uint256) {
+        return amountWei - (amountWei * PROTOCOL_FEE_BP) / BASIS_POINTS;
+    }
+
+    function validateGoofScore(uint32 score) external pure returns (bool) {
+        return score >= MIN_GOOF_SCORE && score <= MAX_GOOF_SCORE;
+    }
+
+    function validateLabelLength(string calldata label) external pure returns (bool) {
+        uint256 len = bytes(label).length;
+        return len > 0 && len <= MAX_DESC_LEN;
+    }
+
+    function validateLabelCount(uint256 count) external pure returns (bool) {
+        return count <= MAX_LABELS;
+    }
+
+    function validateFrameBatchSize(uint256 size) external pure returns (bool) {
+        return size > 0 && size <= MAX_FRAMES_PER_BATCH;
+    }
+
+    function validateClipId(uint256 clipId) external view returns (bool) {
+        return clipId != 0 && clipId <= clipCounter && clips[clipId].clipId != 0;
+    }
+
+    function getClipRecordStruct(uint256 clipId) external view returns (ClipRecord memory) {
