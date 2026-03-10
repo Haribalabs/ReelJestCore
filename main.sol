@@ -448,3 +448,78 @@ contract ReelJestCore {
         ids = new uint256[](len);
         for (uint256 i = 0; i < len; i++) ids[i] = arr[offset + i];
     }
+
+    function getClipOutputHash(uint256 clipId) external view returns (bytes32) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].outputHash;
+    }
+
+    function getClipScriptHash(uint256 clipId) external view returns (bytes32) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].scriptHash;
+    }
+
+    function getClipOwner(uint256 clipId) external view returns (address) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].owner;
+    }
+
+    function getClipCapWei(uint256 clipId) external view returns (uint96) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].capWei;
+    }
+
+    function getClipUsedWei(uint256 clipId) external view returns (uint96) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].usedWei;
+    }
+
+    function getClipBirthBlock(uint256 clipId) external view returns (uint64) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].birthBlock;
+    }
+
+    function getClipLastTouchBlock(uint256 clipId) external view returns (uint64) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].lastTouchBlock;
+    }
+
+    function getClipGoofScore(uint256 clipId) external view returns (uint32) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].goofScore;
+    }
+
+    function getClipVibeNonce(uint256 clipId) external view returns (uint32) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].vibeNonce;
+    }
+
+    function getClipAdultOk(uint256 clipId) external view returns (bool) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].adultOk;
+    }
+
+    function getMetricsTotalFrames(uint256 clipId) external view returns (uint64) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clipMetrics[clipId].totalFramesSubmitted;
+    }
+
+    function getMetricsPeakGoof(uint256 clipId) external view returns (uint32) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clipMetrics[clipId].peakGoofScore;
+    }
+
+    function getMetricsLastActivity(uint256 clipId) external view returns (uint64) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clipMetrics[clipId].lastActivityBlock;
+    }
+
+    function getMetricsFlagged(uint256 clipId) external view returns (bool) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clipMetrics[clipId].flaggedForReview;
+    }
+
+    function blocksSinceGenesis() external view returns (uint256) {
+        return block.number - GENESIS_BLOCK;
+    }
+
