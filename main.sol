@@ -748,3 +748,78 @@ contract ReelJestCore {
 
     function aggregateAbortedCountByOwner(address owner) external view returns (uint256 count) {
         uint256[] storage ids = _clipsByOwner[owner];
+        for (uint256 i = 0; i < ids.length; i++) {
+            if (clips[ids[i]].phase == ClipPhase.Aborted) count++;
+        }
+    }
+
+    function sumGlobalCapWei() external view returns (uint256) {
+        return globalCapWei;
+    }
+
+    function sumGlobalUsedWei() external view returns (uint256) {
+        return globalUsedWei;
+    }
+
+    function sumVaultBalanceWei() external view returns (uint256) {
+        return vaultBalanceWei;
+    }
+
+    function checkScriptAvailable(bytes32 scriptHash) external view returns (bool) {
+        return !scriptConsumed[scriptHash];
+    }
+
+    function remainingClipSlots() external view returns (uint256) {
+        if (clipCounter >= MAX_CLIPS_GLOBAL) return 0;
+        return MAX_CLIPS_GLOBAL - clipCounter;
+    }
+
+    function maxClipsGlobal() external pure returns (uint256) {
+        return MAX_CLIPS_GLOBAL;
+    }
+
+    function maxLabels() external pure returns (uint256) {
+        return MAX_LABELS;
+    }
+
+    function maxDescLen() external pure returns (uint256) {
+        return MAX_DESC_LEN;
+    }
+
+    function maxFramesPerBatch() external pure returns (uint256) {
+        return MAX_FRAMES_PER_BATCH;
+    }
+
+    function revision() external pure returns (uint256) {
+        return REVISION;
+    }
+
+    function cooldownBlocks() external pure returns (uint256) {
+        return COOLDOWN_BLOCKS;
+    }
+
+    function protocolFeeBp() external pure returns (uint256) {
+        return PROTOCOL_FEE_BP;
+    }
+
+    function basisPoints() external pure returns (uint256) {
+        return BASIS_POINTS;
+    }
+
+    function reentrancyFlagValue() external pure returns (uint256) {
+        return REENTRANCY_FLAG;
+    }
+
+    function eipDomain() external pure returns (bytes32) {
+        return EIP_DOMAIN;
+    }
+
+    function saltBlobConstant() external pure returns (bytes32) {
+        return SALT_BLOB;
+    }
+
+    function versionTag() external pure returns (bytes32) {
+        return VERSION_TAG;
+    }
+
+    function maxBulkQuery() external pure returns (uint256) {
