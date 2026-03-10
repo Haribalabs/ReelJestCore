@@ -898,3 +898,78 @@ contract ReelJestCore {
         if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
         caps = new uint96[](len);
         for (uint256 i = 0; i < len; i++) caps[i] = clips[low + i].capWei;
+    }
+
+    function getUsedWeiForRange(uint256 low, uint256 high) external view returns (uint96[] memory used) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint96[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        used = new uint96[](len);
+        for (uint256 i = 0; i < len; i++) used[i] = clips[low + i].usedWei;
+    }
+
+    function getScriptHashesForRange(uint256 low, uint256 high) external view returns (bytes32[] memory hashes) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new bytes32[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        hashes = new bytes32[](len);
+        for (uint256 i = 0; i < len; i++) hashes[i] = clips[low + i].scriptHash;
+    }
+
+    function getOutputHashesForRange(uint256 low, uint256 high) external view returns (bytes32[] memory hashes) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new bytes32[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        hashes = new bytes32[](len);
+        for (uint256 i = 0; i < len; i++) hashes[i] = clips[low + i].outputHash;
+    }
+
+    function getGoofScoresForRange(uint256 low, uint256 high) external view returns (uint32[] memory scores) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint32[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        scores = new uint32[](len);
+        for (uint256 i = 0; i < len; i++) scores[i] = clips[low + i].goofScore;
+    }
+
+    function getBirthBlocksForRange(uint256 low, uint256 high) external view returns (uint64[] memory blocks) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint64[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        blocks = new uint64[](len);
+        for (uint256 i = 0; i < len; i++) blocks[i] = clips[low + i].birthBlock;
+    }
+
+    function getLastTouchBlocksForRange(uint256 low, uint256 high) external view returns (uint64[] memory blocks) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint64[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        blocks = new uint64[](len);
+        for (uint256 i = 0; i < len; i++) blocks[i] = clips[low + i].lastTouchBlock;
+    }
+
+    function getAdultOkForRange(uint256 low, uint256 high) external view returns (bool[] memory flags) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new bool[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        flags = new bool[](len);
+        for (uint256 i = 0; i < len; i++) flags[i] = clips[low + i].adultOk;
+    }
+
+    function totalFrameCountGlobal() external view returns (uint256 total) {
+        for (uint256 id = 1; id <= clipCounter; id++) {
+            total += _frameHashes[id].length;
