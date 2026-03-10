@@ -1123,3 +1123,78 @@ contract ReelJestCore {
     }
 
     function getConstantsPack3() external pure returns (uint256 bulk, uint256 minGoof, uint256 maxGoof, uint256 epochBlk) {
+        return (MAX_BULK_QUERY, MIN_GOOF_SCORE, MAX_GOOF_SCORE, BLOCKS_PER_EPOCH);
+    }
+
+    function getConstantsPack4() external pure returns (uint256 epochScale, bytes32 dom, bytes32 salt, bytes32 ver) {
+        return (EPOCH_REWARD_SCALE_BP, EIP_DOMAIN, SALT_BLOB, VERSION_TAG);
+    }
+
+    function clipPhaseIsPending(uint256 clipId) external view returns (bool) { return clips[clipId].phase == ClipPhase.Pending; }
+    function clipPhaseIsInProgress(uint256 clipId) external view returns (bool) { return clips[clipId].phase == ClipPhase.InProgress; }
+    function clipPhaseIsAborted(uint256 clipId) external view returns (bool) { return clips[clipId].phase == ClipPhase.Aborted; }
+    function clipPhaseIsAbsent(uint256 clipId) external view returns (bool) { return clips[clipId].phase == ClipPhase.Absent; }
+
+    function getClipIdsForOwnerAll(address owner) external view returns (uint256[] memory) {
+        return _clipsByOwner[owner];
+    }
+
+    function frameCountForClips(uint256[] calldata ids) external view returns (uint256[] memory counts) {
+        counts = new uint256[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) counts[i] = _frameHashes[ids[i]].length;
+    }
+
+    function labelCountForClips(uint256[] calldata ids) external view returns (uint256[] memory counts) {
+        counts = new uint256[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) counts[i] = _clipLabels[ids[i]].length;
+    }
+
+    function scriptHashesForClips(uint256[] calldata ids) external view returns (bytes32[] memory hashes) {
+        hashes = new bytes32[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) hashes[i] = clips[ids[i]].scriptHash;
+    }
+
+    function outputHashesForClips(uint256[] calldata ids) external view returns (bytes32[] memory hashes) {
+        hashes = new bytes32[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) hashes[i] = clips[ids[i]].outputHash;
+    }
+
+    function ownersForClips(uint256[] calldata ids) external view returns (address[] memory owners) {
+        owners = new address[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) owners[i] = clips[ids[i]].owner;
+    }
+
+    function phasesForClips(uint256[] calldata ids) external view returns (uint8[] memory phases) {
+        phases = new uint8[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) phases[i] = uint8(clips[ids[i]].phase);
+    }
+
+    function capsForClips(uint256[] calldata ids) external view returns (uint96[] memory caps) {
+        caps = new uint96[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) caps[i] = clips[ids[i]].capWei;
+    }
+
+    function usedWeiForClips(uint256[] calldata ids) external view returns (uint96[] memory used) {
+        used = new uint96[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) used[i] = clips[ids[i]].usedWei;
+    }
+
+    function goofScoresForClips(uint256[] calldata ids) external view returns (uint32[] memory scores) {
+        scores = new uint32[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) scores[i] = clips[ids[i]].goofScore;
+    }
+
+    function birthBlocksForClips(uint256[] calldata ids) external view returns (uint64[] memory blocks) {
+        blocks = new uint64[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) blocks[i] = clips[ids[i]].birthBlock;
+    }
+
+    function lastTouchBlocksForClips(uint256[] calldata ids) external view returns (uint64[] memory blocks) {
+        blocks = new uint64[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) blocks[i] = clips[ids[i]].lastTouchBlock;
+    }
+
+    function adultOkForClips(uint256[] calldata ids) external view returns (bool[] memory flags) {
+        flags = new bool[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) flags[i] = clips[ids[i]].adultOk;
+    }
