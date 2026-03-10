@@ -523,3 +523,78 @@ contract ReelJestCore {
         return block.number - GENESIS_BLOCK;
     }
 
+    function currentEpoch() external view returns (uint256) {
+        return (block.number - GENESIS_BLOCK) / BLOCKS_PER_EPOCH;
+    }
+
+    function epochAtBlock(uint256 blockNum) external view returns (uint256) {
+        if (blockNum < GENESIS_BLOCK) return 0;
+        return (blockNum - GENESIS_BLOCK) / BLOCKS_PER_EPOCH;
+    }
+
+    function estimateRefund(uint256 clipId, uint96 proposedUsedWei) external view returns (uint256 refundWei, uint256 feeWei) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        ClipRecord storage c = clips[clipId];
+        if (proposedUsedWei > c.capWei) return (0, 0);
+        feeWei = (uint256(proposedUsedWei) * PROTOCOL_FEE_BP) / BASIS_POINTS;
+        refundWei = uint256(c.capWei) - uint256(proposedUsedWei);
+    }
+
+    function canStartRendering(uint256 clipId) external view returns (bool) {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0 || c.phase != ClipPhase.Pending) return false;
+        return block.number >= uint256(c.lastTouchBlock) + COOLDOWN_BLOCKS;
+    }
+
+    function blocksUntilRenderingAllowed(uint256 clipId) external view returns (uint256) {
+        ClipRecord storage c = clips[clipId];
+        if (c.clipId == 0 || c.phase != ClipPhase.Pending) return 0;
+        uint256 required = uint256(c.lastTouchBlock) + COOLDOWN_BLOCKS;
+        if (block.number >= required) return 0;
+        return required - block.number;
+    }
+
+    function getConfigCompact() external pure returns (
+        uint256 a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g, uint256 h
+    ) {
+        return (
+            MAX_LABELS,
+            MAX_DESC_LEN,
+            MAX_FRAMES_PER_BATCH,
+            MAX_CLIPS_GLOBAL,
+            REVISION,
+            COOLDOWN_BLOCKS,
+            PROTOCOL_FEE_BP,
+            MAX_BULK_QUERY
+        );
+    }
+
+    function getDomainAndVersion() external pure returns (bytes32 domain, bytes32 version) {
+        return (EIP_DOMAIN, VERSION_TAG);
+    }
+
+    function getSaltBlob() external pure returns (bytes32) {
+        return SALT_BLOB;
+    }
+
+    function getGenesisBlock() external view returns (uint256) {
+        return GENESIS_BLOCK;
+    }
+
+    function getGovernor() external view returns (address) {
+        return GOVERNOR;
+    }
+
+    function getVault() external view returns (address) {
+        return VAULT;
+    }
+
+    function getRenderer() external view returns (address) {
+        return RENDERER;
+    }
+
+    function getObserver() external view returns (address) {
+        return OBSERVER;
+    }
+
+    function isFrozen() external view returns (bool) {
