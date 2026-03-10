@@ -1198,3 +1198,74 @@ contract ReelJestCore {
         flags = new bool[](ids.length);
         for (uint256 i = 0; i < ids.length; i++) flags[i] = clips[ids[i]].adultOk;
     }
+
+    function totalMetricsFrames(uint256 clipId) external view returns (uint64) {
+        return clipMetrics[clipId].totalFramesSubmitted;
+    }
+
+    function peakGoofForClip(uint256 clipId) external view returns (uint32) {
+        return clipMetrics[clipId].peakGoofScore;
+    }
+
+    function lastActivityForClip(uint256 clipId) external view returns (uint64) {
+        return clipMetrics[clipId].lastActivityBlock;
+    }
+
+    function flaggedForClip(uint256 clipId) external view returns (bool) {
+        return clipMetrics[clipId].flaggedForReview;
+    }
+
+    function safeClipIdRange() external view returns (uint256 minId, uint256 maxId) {
+        minId = 1;
+        maxId = clipCounter;
+    }
+
+    function getNextClipId() external view returns (uint256) {
+        return clipCounter + 1;
+    }
+
+    function wouldExceedMaxClips(uint256 additional) external view returns (bool) {
+        return clipCounter + additional > MAX_CLIPS_GLOBAL;
+    }
+
+    function protocolFeeFor(uint256 spent) external pure returns (uint256) {
+        return (spent * PROTOCOL_FEE_BP) / BASIS_POINTS;
+    }
+
+    function creatorRefundFor(uint256 cap, uint256 spent) external pure returns (uint256) {
+        if (spent > cap) return 0;
+        return cap - spent;
+    }
+
+    function allRoles() external view returns (address[4] memory roles) {
+        roles[0] = GOVERNOR;
+        roles[1] = VAULT;
+        roles[2] = RENDERER;
+        roles[3] = OBSERVER;
+    }
+
+    function configAsTuple() external pure returns (uint256, uint256, uint256, uint256, uint256, uint256) {
+        return (MAX_LABELS, MAX_DESC_LEN, MAX_FRAMES_PER_BATCH, MAX_CLIPS_GLOBAL, COOLDOWN_BLOCKS, PROTOCOL_FEE_BP);
+    }
+
+    function domainSaltVersion() external pure returns (bytes32 d, bytes32 s, bytes32 v) {
+        d = EIP_DOMAIN;
+        s = SALT_BLOB;
+        v = VERSION_TAG;
+    }
+
+    function clipRefundable(uint256 clipId) external view returns (bool) {
+        ClipRecord storage c = clips[clipId];
+        return c.clipId != 0 && c.phase != ClipPhase.Done && c.phase != ClipPhase.Aborted && c.capWei > 0;
+    }
+
+    function clipSpent(uint256 clipId) external view returns (uint96) {
+        return clips[clipId].usedWei;
+    }
+
+    function clipCap(uint256 clipId) external view returns (uint96) {
+        return clips[clipId].capWei;
+    }
+
+    receive() external payable {}
+}
