@@ -673,3 +673,78 @@ contract ReelJestCore {
     }
 
     function protocolInfo() external pure returns (string memory name, uint256 rev, bytes32 domain) {
+        name = "ReelJestCore";
+        rev = REVISION;
+        domain = EIP_DOMAIN;
+    }
+
+    function getPhaseName(ClipPhase phase) external pure returns (string memory) {
+        if (phase == ClipPhase.Absent) return "Absent";
+        if (phase == ClipPhase.Pending) return "Pending";
+        if (phase == ClipPhase.InProgress) return "InProgress";
+        if (phase == ClipPhase.Done) return "Done";
+        if (phase == ClipPhase.Aborted) return "Aborted";
+        return "Unknown";
+    }
+
+    function getPhaseFromClip(uint256 clipId) external view returns (ClipPhase) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId].phase;
+    }
+
+    function totalLabelsForClip(uint256 clipId) external view returns (uint256) {
+        return _clipLabels[clipId].length;
+    }
+
+    function clipExists(uint256 clipId) external view returns (bool) {
+        return clips[clipId].clipId != 0;
+    }
+
+    function getClipsByOwnerSlice(address owner, uint256 start, uint256 length) external view returns (uint256[] memory) {
+        uint256[] storage arr = _clipsByOwner[owner];
+        if (start >= arr.length) return new uint256[](0);
+        uint256 end = start + length;
+        if (end > arr.length) end = arr.length;
+        uint256 len = end - start;
+        uint256[] memory out = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) out[i] = arr[start + i];
+        return out;
+    }
+
+    function aggregateCapByOwner(address owner) external view returns (uint256 total) {
+        uint256[] storage ids = _clipsByOwner[owner];
+        for (uint256 i = 0; i < ids.length; i++) {
+            total += clips[ids[i]].capWei;
+        }
+    }
+
+    function aggregateUsedByOwner(address owner) external view returns (uint256 total) {
+        uint256[] storage ids = _clipsByOwner[owner];
+        for (uint256 i = 0; i < ids.length; i++) {
+            total += clips[ids[i]].usedWei;
+        }
+    }
+
+    function aggregateDoneCountByOwner(address owner) external view returns (uint256 count) {
+        uint256[] storage ids = _clipsByOwner[owner];
+        for (uint256 i = 0; i < ids.length; i++) {
+            if (clips[ids[i]].phase == ClipPhase.Done) count++;
+        }
+    }
+
+    function aggregatePendingCountByOwner(address owner) external view returns (uint256 count) {
+        uint256[] storage ids = _clipsByOwner[owner];
+        for (uint256 i = 0; i < ids.length; i++) {
+            if (clips[ids[i]].phase == ClipPhase.Pending) count++;
+        }
+    }
+
+    function aggregateInProgressCountByOwner(address owner) external view returns (uint256 count) {
+        uint256[] storage ids = _clipsByOwner[owner];
+        for (uint256 i = 0; i < ids.length; i++) {
+            if (clips[ids[i]].phase == ClipPhase.InProgress) count++;
+        }
+    }
+
+    function aggregateAbortedCountByOwner(address owner) external view returns (uint256 count) {
+        uint256[] storage ids = _clipsByOwner[owner];
