@@ -1048,3 +1048,78 @@ contract ReelJestCore {
     }
 
     function getClipRecordStruct(uint256 clipId) external view returns (ClipRecord memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clips[clipId];
+    }
+
+    function getClipMetricsStruct(uint256 clipId) external view returns (ClipMetrics memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return clipMetrics[clipId];
+    }
+
+    function getSummary(uint256 clipId) external view returns (ClipSummary memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        ClipRecord storage c = clips[clipId];
+        return ClipSummary({
+            clipId: c.clipId,
+            owner: c.owner,
+            goofScore: c.goofScore,
+            capWei: c.capWei,
+            usedWei: c.usedWei,
+            phase: c.phase,
+            birthBlock: c.birthBlock
+        });
+    }
+
+    function getSummariesForIds(uint256[] calldata ids) external view returns (ClipSummary[] memory result) {
+        result = new ClipSummary[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 id = ids[i];
+            if (clips[id].clipId == 0) continue;
+            ClipRecord storage c = clips[id];
+            result[i] = ClipSummary({
+                clipId: c.clipId,
+                owner: c.owner,
+                goofScore: c.goofScore,
+                capWei: c.capWei,
+                usedWei: c.usedWei,
+                phase: c.phase,
+                birthBlock: c.birthBlock
+            });
+        }
+    }
+
+    function balanceOfContract() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function expectedVaultShare(uint256 usedWei) external pure returns (uint256) {
+        return (usedWei * PROTOCOL_FEE_BP) / BASIS_POINTS;
+    }
+
+    function expectedCreatorRefund(uint256 capWei, uint256 usedWei) external pure returns (uint256) {
+        if (usedWei > capWei) return 0;
+        return capWei - usedWei;
+    }
+
+    function getRoleCheck(address account) external view returns (bool isGov, bool isVault, bool isRend, bool isObs) {
+        isGov = (account == GOVERNOR);
+        isVault = (account == VAULT);
+        isRend = (account == RENDERER);
+        isObs = (account == OBSERVER);
+    }
+
+    function isGovernor(address account) external view returns (bool) { return account == GOVERNOR; }
+    function isVault(address account) external view returns (bool) { return account == VAULT; }
+    function isRenderer(address account) external view returns (bool) { return account == RENDERER; }
+    function isObserver(address account) external view returns (bool) { return account == OBSERVER; }
+
+    function getConstantsPack1() external pure returns (uint256 bp, uint256 maxLbl, uint256 maxDesc, uint256 maxFrames) {
+        return (BASIS_POINTS, MAX_LABELS, MAX_DESC_LEN, MAX_FRAMES_PER_BATCH);
+    }
+
+    function getConstantsPack2() external pure returns (uint256 maxClips, uint256 rev, uint256 cooldown, uint256 feeBp) {
+        return (MAX_CLIPS_GLOBAL, REVISION, COOLDOWN_BLOCKS, PROTOCOL_FEE_BP);
+    }
+
+    function getConstantsPack3() external pure returns (uint256 bulk, uint256 minGoof, uint256 maxGoof, uint256 epochBlk) {
