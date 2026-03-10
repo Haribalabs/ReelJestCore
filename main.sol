@@ -373,3 +373,78 @@ contract ReelJestCore {
             result[i] = ClipSummary({
                 clipId: c.clipId,
                 owner: c.owner,
+                goofScore: c.goofScore,
+                capWei: c.capWei,
+                usedWei: c.usedWei,
+                phase: c.phase,
+                birthBlock: c.birthBlock
+            });
+        }
+    }
+
+    function getBulkClips(uint256 offset, uint256 limit) external view returns (BulkClipResult memory) {
+        if (limit > MAX_BULK_QUERY) limit = MAX_BULK_QUERY;
+        uint256 total = clipCounter;
+        if (offset >= total) {
+            return BulkClipResult({ summaries: new ClipSummary[](0), nextOffset: offset, hasMore: false });
+        }
+        uint256 end = offset + limit;
+        if (end > total) end = total;
+        uint256 len = end - offset;
+        ClipSummary[] memory arr = new ClipSummary[](len);
+        for (uint256 i = 0; i < len; i++) {
+            uint256 id = offset + i + 1;
+            ClipRecord storage c = clips[id];
+            arr[i] = ClipSummary({
+                clipId: c.clipId,
+                owner: c.owner,
+                goofScore: c.goofScore,
+                capWei: c.capWei,
+                usedWei: c.usedWei,
+                phase: c.phase,
+                birthBlock: c.birthBlock
+            });
+        }
+        return BulkClipResult({
+            summaries: arr,
+            nextOffset: end,
+            hasMore: end < total
+        });
+    }
+
+    function getClipsInPhase(ClipPhase phase, uint256 fromId, uint256 count) external view returns (uint256[] memory ids) {
+        if (count > MAX_BULK_QUERY) count = MAX_BULK_QUERY;
+        uint256[] memory temp = new uint256[](count);
+        uint256 found = 0;
+        uint256 start = fromId == 0 ? 1 : fromId;
+        for (uint256 id = start; id <= clipCounter && found < count; id++) {
+            if (clips[id].phase == phase) {
+                temp[found] = id;
+                found++;
+            }
+        }
+        ids = new uint256[](found);
+        for (uint256 i = 0; i < found; i++) ids[i] = temp[i];
+    }
+
+    function countClipsByPhase(ClipPhase phase) external view returns (uint256) {
+        uint256 n = 0;
+        for (uint256 id = 1; id <= clipCounter; id++) {
+            if (clips[id].phase == phase) n++;
+        }
+        return n;
+    }
+
+    function getOwnerClipCount(address owner) external view returns (uint256) {
+        return _clipsByOwner[owner].length;
+    }
+
+    function getOwnerClipsPaginated(address owner, uint256 offset, uint256 limit) external view returns (uint256[] memory ids) {
+        uint256[] storage arr = _clipsByOwner[owner];
+        if (offset >= arr.length) return new uint256[](0);
+        uint256 end = offset + limit;
+        if (end > arr.length) end = arr.length;
+        uint256 len = end - offset;
+        ids = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) ids[i] = arr[offset + i];
+    }
