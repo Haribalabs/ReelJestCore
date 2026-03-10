@@ -823,3 +823,78 @@ contract ReelJestCore {
     }
 
     function maxBulkQuery() external pure returns (uint256) {
+        return MAX_BULK_QUERY;
+    }
+
+    function minGoofScore() external pure returns (uint256) {
+        return MIN_GOOF_SCORE;
+    }
+
+    function maxGoofScore() external pure returns (uint256) {
+        return MAX_GOOF_SCORE;
+    }
+
+    function blocksPerEpoch() external pure returns (uint256) {
+        return BLOCKS_PER_EPOCH;
+    }
+
+    function epochRewardScaleBp() external pure returns (uint256) {
+        return EPOCH_REWARD_SCALE_BP;
+    }
+
+    function getFramesBatch(uint256 clipId, uint256[] calldata indices) external view returns (bytes32[] memory out) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        bytes32[] storage f = _frameHashes[clipId];
+        out = new bytes32[](indices.length);
+        for (uint256 i = 0; i < indices.length; i++) {
+            if (indices[i] < f.length) out[i] = f[indices[i]];
+        }
+    }
+
+    function getLabelsBatch(uint256 clipId, uint256[] calldata indices) external view returns (string[] memory out) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        string[] storage labels = _clipLabels[clipId];
+        out = new string[](indices.length);
+        for (uint256 i = 0; i < indices.length; i++) {
+            if (indices[i] < labels.length) out[i] = labels[indices[i]];
+        }
+    }
+
+    function getClipIdsInRange(uint256 low, uint256 high) external view returns (uint256[] memory ids) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint256[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        ids = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) ids[i] = low + i;
+    }
+
+    function getPhasesForRange(uint256 low, uint256 high) external view returns (uint8[] memory phases) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint8[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        phases = new uint8[](len);
+        for (uint256 i = 0; i < len; i++) phases[i] = uint8(clips[low + i].phase);
+    }
+
+    function getOwnersForRange(uint256 low, uint256 high) external view returns (address[] memory owners) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new address[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        owners = new address[](len);
+        for (uint256 i = 0; i < len; i++) owners[i] = clips[low + i].owner;
+    }
+
+    function getCapWeiForRange(uint256 low, uint256 high) external view returns (uint96[] memory caps) {
+        if (low == 0) low = 1;
+        if (high > clipCounter) high = clipCounter;
+        if (low > high) return new uint96[](0);
+        uint256 len = high - low + 1;
+        if (len > MAX_BULK_QUERY) len = MAX_BULK_QUERY;
+        caps = new uint96[](len);
+        for (uint256 i = 0; i < len; i++) caps[i] = clips[low + i].capWei;
