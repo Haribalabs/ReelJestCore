@@ -598,3 +598,78 @@ contract ReelJestCore {
     }
 
     function isFrozen() external view returns (bool) {
+        return frozen;
+    }
+
+    function getClipCounter() external view returns (uint256) {
+        return clipCounter;
+    }
+
+    function getGlobalCapWei() external view returns (uint256) {
+        return globalCapWei;
+    }
+
+    function getGlobalUsedWei() external view returns (uint256) {
+        return globalUsedWei;
+    }
+
+    function getVaultBalanceWei() external view returns (uint256) {
+        return vaultBalanceWei;
+    }
+
+    function getClipRecordFull(uint256 clipId) external view returns (
+        uint256 id,
+        address ownerAddr,
+        uint64 birthBlk,
+        uint64 lastBlk,
+        uint32 goof,
+        uint32 vibe,
+        uint96 cap,
+        uint96 used,
+        bytes32 scriptH,
+        bytes32 outputH,
+        ClipPhase ph,
+        bool adult
+    ) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        ClipRecord storage c = clips[clipId];
+        return (
+            c.clipId,
+            c.owner,
+            c.birthBlock,
+            c.lastTouchBlock,
+            c.goofScore,
+            c.vibeNonce,
+            c.capWei,
+            c.usedWei,
+            c.scriptHash,
+            c.outputHash,
+            c.phase,
+            c.adultOk
+        );
+    }
+
+    function getFrameHashAt(uint256 clipId, uint256 index) external view returns (bytes32) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        bytes32[] storage f = _frameHashes[clipId];
+        if (index >= f.length) revert RJC_BadParams();
+        return f[index];
+    }
+
+    function getLabelAt(uint256 clipId, uint256 index) external view returns (string memory) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        string[] storage labels = _clipLabels[clipId];
+        if (index >= labels.length) revert RJC_BadParams();
+        return labels[index];
+    }
+
+    function getLabelCount(uint256 clipId) external view returns (uint256) {
+        if (clips[clipId].clipId == 0) revert RJC_InvalidClip();
+        return _clipLabels[clipId].length;
+    }
+
+    function supportsInterface(bytes4) external pure returns (bool) {
+        return false;
+    }
+
+    function protocolInfo() external pure returns (string memory name, uint256 rev, bytes32 domain) {
